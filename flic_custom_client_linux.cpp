@@ -27,8 +27,9 @@ using namespace std;
 using namespace FlicClientProtocol;
 
 class FlicCustomClient {
-private:
+public:
     int sockfd;
+private:
     bool connected;
     map<uint32_t, string> connection_channels; // conn_id -> button_address
     uint32_t next_conn_id;
@@ -523,38 +524,73 @@ int main(int argc, char* argv[]) {
     // Get initial info
     client.get_info();
     
-    // Interactive command loop
-    string command;
+    // Interactive command loop with event handling (like simpleclient)
     client.print_help();
     
     while (true) {
         cout << "flic> ";
-        cin >> command;
+        fflush(stdout);
         
-        if (command == "pair") {
-            client.start_pairing();
-        } else if (command == "cancel") {
-            client.cancel_pairing();
-        } else if (command == "list") {
-            client.get_info();
-        } else if (command == "connect") {
-            string addr;
-            cout << "Enter button address (e.g., aa:bb:cc:dd:ee:ff): ";
-            cin >> addr;
-            client.connect_button(addr);
-        } else if (command == "disconnect") {
-            uint32_t conn_id;
-            cout << "Enter connection ID: ";
-            cin >> conn_id;
-            client.disconnect_button(conn_id);
-        } else if (command == "listen") {
-            client.run_event_loop();
-        } else if (command == "help") {
-            client.print_help();
-        } else if (command == "quit" || command == "exit") {
-            break;
-        } else {
-            cout << "Unknown command: " << command << ". Type 'help' for available commands." << endl;
+        fd_set fdread;
+        FD_ZERO(&fdread);
+        FD_SET(STDIN_FILENO, &fdread);
+        FD_SET(client.sockfd, &fdread);
+        
+        int select_res = select(max(STDIN_FILENO, client.sockfd) + 1, &fdread, NULL, NULL, NULL);
+        if (select_res < 0) {
+            if (errno == EINTR) {
+                continue;
+            } else {
+                perror("select");
+                break;
+            }
+        }
+        
+        // Handle socket events
+        if (FD_ISSET(client.sockfd, &fdread)) {
+            uint8_t readbuf[65537];
+            int len = client.read_packet(readbuf, sizeof(readbuf));
+            if (len == 0) {
+                cout << "[EVENT LOOP] Server closed connection" << endl;
+                break;
+            } else if (len < 0) {
+                if (len == -2) continue; // Not enough data
+                break; // Error
+            }
+            
+            client.handle_event(readbuf, len);
+        }
+        
+        // Handle stdin commands
+        if (FD_ISSET(STDIN_FILENO, &fdread)) {
+            string command;
+            cin >> command;
+            
+            if (command == "pair") {
+                client.start_pairing();
+            } else if (command == "cancel") {
+                client.cancel_pairing();
+            } else if (command == "list") {
+                client.get_info();
+            } else if (command == "connect") {
+                string addr;
+                cout << "Enter button address (e.g., aa:bb:cc:dd:ee:ff): ";
+                cin >> addr;
+                client.connect_button(addr);
+            } else if (command == "disconnect") {
+                uint32_t conn_id;
+                cout << "Enter connection ID: ";
+                cin >> conn_id;
+                client.disconnect_button(conn_id);
+            } else if (command == "listen") {
+                client.run_event_loop();
+            } else if (command == "help") {
+                client.print_help();
+            } else if (command == "quit" || command == "exit") {
+                break;
+            } else {
+                cout << "Unknown command: " << command << ". Type 'help' for available commands." << endl;
+            }
         }
     }
     
