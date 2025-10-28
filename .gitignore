@@ -29,7 +29,7 @@ desktop.ini
 *.log
 
 # External dependencies (fliclib-linux-hci is a separate Git repo)
-fliclib-linux-hci/
+#fliclib-linux-hci/
 
 # Backup files
 *.bak
