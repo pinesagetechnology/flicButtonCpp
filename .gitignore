@@ -1,0 +1,36 @@
+# Compiled executables
+flic_custom_client
+flic_custom_client.exe
+flic_custom_client_linux
+flic_custom_client_linux.exe
+
+# Build artifacts
+*.o
+*.obj
+*.so
+*.dll
+*.dylib
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# External dependencies (fliclib-linux-hci is a separate Git repo)
+fliclib-linux-hci/
+
+# Backup files
+*.bak
+*.backup
